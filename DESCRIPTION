@@ -1,0 +1,12 @@
+Package: CAF
+Type: Package
+Title: Useful functions for microbial ecology
+Version: 0.1.0
+Author: Nick Pinkham
+Maintainer: Nick Pinkham <nickvpinkham@gmail.com>
+Description: A collections of functions I use frequently when analyzing a dataset.
+    Tax.shared analysis is particularly useful
+License: GNU General Public License v3.0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
