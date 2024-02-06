@@ -64,55 +64,70 @@ filter.outliers <- function(var){
 #' @param groups categories vector
 #' @return t test results
 #' @export
-plot.1var <- function(var = map.nasal$beta.disp,
-                      groups = map.nasal$discription.MOV2,
-                      col = map.nasal$col3,
+plot.1var <- function(var = map$dist2a1,
+                      groups = map$discription,
+                      col = map$col,
                       exclude.outliers = TRUE){
-
+  
+  if(missing(col)) {
+    col <- color.groups(map$discription)
+  }
+  
   var.name <- deparse(substitute(var))
   groups.name <- deparse(substitute(groups))
+  
+  if(typeof(groups) == "character"){
+    groups <- factor(groups)
+  }
 
-  groups.unique <- levels(groups)
-  groups.unique <- groups.unique[!is.na(groups.unique)]
-
-  try(
-
-    col.agg <- aggregate(col, list(groups), unique)
-
-  )
-
+  try({col.agg <- aggregate(col, list(groups), unique)}, silent = T)
+          
+  if(max(lengths(col.agg$x)) > 1){
+    col.agg$x <- "grey"
+    message("colors did not correspond to groups")
+  }
+  
+  var1 <- var[!is.na(groups) & !is.na(var)]
+  groups1 <- groups[!is.na(groups) & !is.na(var)]
+  
+  var <- var1
+  groups <- droplevels(groups1)
+  
   boxplot(var ~ groups,
           col = col.agg$x,
           xlab = groups.name,
           ylab = var.name,
           ylim = range(var, na.rm = T) * c(.9, 1.1))
-
+  
   outs <- aggregate(var, list(groups), filter.outliers)
   aa = 0
-
+  
+  groups.unique <- levels(groups)
+  groups.unique <- groups.unique[!is.na(groups.unique)]
+  
   n.comps <- sum(1 : (length(groups.unique) - 1))
   t.res.all <- as.data.frame(matrix(nrow = n.comps, ncol = 8))
-
+  
   colnames(t.res.all) <- c("group1", "group2",
                            "p", "effect_size", "t_stat", "df", "95_lo", "95_hi")
   counts = 0
-
+  
   for(i in 1 : length(groups.unique)){
     for(j in 1 : i){
       if(j != i){
-
+        
         counts <- counts + 1
-
+        
         var.i <- var[which(groups == groups.unique[i])]
         var.j <- var[which(groups == groups.unique[j])]
-
+        
         if(exclude.outliers){
-
+          
           t.res <- t.test(var.i[outs$x[[i]]], var.j[outs$x[[j]]])
         }else{
           t.res <- t.test(var.i, var.j)
         }
-
+        
         t.res.all[counts,] <- c(as.character(groups.unique[i]),
                                 as.character(groups.unique[j]),
                                 t.res$p.value,
@@ -120,19 +135,19 @@ plot.1var <- function(var = map.nasal$beta.disp,
                                 t.res$statistic,
                                 t.res$parameter,
                                 t.res$conf.int[1:2])
-
-
+        
+        
         if(t.res$p.value < 0.05){
           aa <- aa + (diff(range(var, na.rm = T)) / 50)
-
+          
           print(i)
           print(j)
-
+          
           #boxplot(var.i, var.j, main = t.res$p.value)
-
+          
           h <- max(c(var.i, var.j), na.rm = T) + (aa * 2)
-
-
+          
+          
           segments(x0 = i, y0 = h, x1 = j, y1 = h)
           text(mean(c(i,j)), h,
                paste("p = ", round(t.res$p.value, 5), "\n"),
