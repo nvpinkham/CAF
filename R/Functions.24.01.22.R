@@ -70,7 +70,7 @@ plot.1var <- function(var = map$dist2a1,
                       exclude.outliers = TRUE){
   
   if(missing(col)) {
-    col <- color.groups(map$discription)
+    col <- color.groups(groups)
   }
   
   var.name <- deparse(substitute(var))
