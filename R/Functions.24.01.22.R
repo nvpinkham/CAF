@@ -599,3 +599,31 @@ taxplot <- function(otu = otu.nasal,
          fill = rev(col.key[,2]),
          legend = rev(col.key[,1]))
 }
+
+read.mothur.taxonomy <- function(cons.taxonomy){
+  
+  tax <- read.table(cons.taxonomy, 
+                    header = T, row.names = 1)
+  
+  tax.list <- strsplit(tax$Taxonomy, ";|[(]|[)]")
+  
+  tax.df <- matrix(nrow = nrow(tax), ncol = 18)
+  
+  for(i in 1:18){
+    
+    tax.df[ , i] <- sapply(tax.list , "[[", i)
+    
+  }
+  
+  tax.df <- as.data.frame(tax.df)
+  tax.df <- tax.df[ , tax.df[1,] != ""]
+  
+  colnames(tax.df) <- c("Kingdom", "King.conf", 
+                        "Phylum",  "Phy.conf",
+                        "Class",   "Class.conf",
+                        "Order",   "Order.conf", 
+                        "family",  "fam.conf",
+                        "genus",   "gen.conf")
+  return(tax.df)
+}
+
