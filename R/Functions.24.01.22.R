@@ -555,51 +555,6 @@ color.groups <- function(vec, cols = c("darkorange", #(Red)
   return(vec.col)
 }
 
-taxplot <- function(otu = otu.nasal,
-                    tax = tax.nasal$family,
-                    var = map.nasal$discription.MOV2,
-                    cutoff = 0.05){
-
-  par(mar = c(8, 4, 4, 2))
-
-  otu <- otu / rowSums(otu)
-  tax.agg <- aggregate(t(otu), list(tax), sum)
-  rownames(tax.agg) <- tax.agg$Group.1
-  tax.agg$Group.1 <- NULL
-
-  tax.agg <- aggregate(t(tax.agg), list(var), mean)
-  rownames(tax.agg) <- tax.agg$Group.1
-  tax.agg$Group.1 <- NULL
-
-  tax.agg <- t(tax.agg)
-
-  tax.agg <- tax.agg[order(rowSums(tax.agg), decreasing = T) ,  ]
-
-  tax.agg.pick <- tax.agg[rowSums(tax.agg) / sum(tax.agg) >= cutoff , ]
-  tax.agg.other <- tax.agg[rowSums(tax.agg) / sum(tax.agg) < cutoff , ]
-
-  other <- colSums(tax.agg.other)
-  tax.agg.pick <- rbind(tax.agg.pick, other)
-
-  color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
-  set.seed(140404)
-  cols <- sample(color, nrow(tax.agg.pick))
-  col.key <- cbind(rownames(tax.agg.pick), cols)
-  # col.key <- rbind(col.key, c("other", "grey", "other"))
-  col.key[nrow(col.key),2] <- "grey50"
-
-  barplot(tax.agg.pick *100, width = 1, beside = F,
-          xlim = c(0, ncol(tax.agg.pick) * 1.5),
-          space = .1,
-          col =  col.key[,2], las = 2,
-          ylab = "mean % of community within group")
-
-  legend("right",
-         bty = "n",
-         fill = rev(col.key[,2]),
-         legend = rev(col.key[,1]))
-}
-
 read.mothur.taxonomy <- function(cons.taxonomy){
   
   tax <- read.table(cons.taxonomy, 
@@ -625,5 +580,53 @@ read.mothur.taxonomy <- function(cons.taxonomy){
                         "family",  "fam.conf",
                         "genus",   "gen.conf")
   return(tax.df)
+}
+
+taxplot <- function (otu = otu.nasal, 
+                     tax = tax.nasal$family, 
+                     var = map.nasal$discription.MOV2, 
+                     cutoff = 0.05, log = F){
+  par(mar = c(8, 4, 4, 2))
+  
+  if(log){
+    otu <- log(otu + 1)
+    label.y <- "log transformed proportion of community"
+    
+  }else{
+    label.y <- "Proportion of community"
+  }
+  
+  otu <- otu/rowSums(otu)
+  
+  tax.agg <- aggregate(t(otu), list(tax), sum)
+  rownames(tax.agg) <- tax.agg$Group.1
+  tax.agg$Group.1 <- NULL
+  tax.agg <- aggregate(t(tax.agg), list(var), mean)
+  rownames(tax.agg) <- tax.agg$Group.1
+  tax.agg$Group.1 <- NULL
+  tax.agg <- t(tax.agg)
+  tax.agg <- tax.agg[order(rowSums(tax.agg), decreasing = T), 
+  ]
+  tax.agg.pick <- tax.agg[rowSums(tax.agg)/sum(tax.agg) >= 
+                            cutoff, ]
+  tax.agg.other <- tax.agg[rowSums(tax.agg)/sum(tax.agg) < 
+                             cutoff, ]
+  other <- colSums(tax.agg.other)
+  tax.agg.pick <- rbind(tax.agg.pick, other)
+  color = grDevices::colors()[grep("gr(a|e)y", grDevices::colors(), 
+                                   invert = T)]
+  set.seed(140404)
+  cols <- sample(color, nrow(tax.agg.pick))
+  col.key <- cbind(rownames(tax.agg.pick), cols)
+  col.key[nrow(col.key), 2] <- "grey50"
+  barplot(tax.agg.pick, width = 1,
+          beside = F, 
+          xlim = c(0, 
+                   ncol(tax.agg.pick) * 1.5), 
+          space = 0.1, col = col.key[, 2], las = 2,
+          ylab = label.y)
+  
+  legend("right", bty = "n", fill = rev(col.key[, 2]), legend = rev(col.key[, 
+                                                                            1]))
 }
 
