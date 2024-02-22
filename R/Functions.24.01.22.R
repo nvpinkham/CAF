@@ -167,32 +167,35 @@ plot.1var <- function(var = map$dist2a1,
 #' @return t test results
 #' @export
 group.nmds <- function(otu = otu.nasal,
-                       predictor = map.nasal$`MOVI PCR`,
-                       groups = c("positive", "negative"),
+                       predictor = map.nasal$`MOVI PCR`, 
+                       groups = c("positive", "negative"), 
                        size = 1,
-                       color = map.nasal$col1,
-                       return.table = F,
+                       color = map.nasal$col1, 
+                       return.table = F, 
                        spider = T,
                        legend.location = "bottomleft"){
   # predictor is a vector of the catagorical predicting variable
   # groups are the paticular catagories you want to explore
   # col is a vertor coresponding to the groups in the predictor
-
+  
   all.groups <-  unique(predictor)
   others <- all.groups [!all.groups %in% groups]
   others <- paste(  others , collapse = "\nand ")
-
+  
   otu.dist <- vegan::vegdist(otu)
-
+  
   nmds <- metaMDS(otu.dist)
   plot(nmds$points, pch = 19, col = 8)#, cex  = map.fecal$invsimp / 10)
-
+  
   nmds.pick <- nmds$points[ predictor %in% groups , ]
   col.pick <- color[ predictor %in% groups]
   otu.pick <- otu[ predictor %in% groups , ]
-
+  
   predictor.pick <- predictor[ which(predictor %in% groups)]
-
+  if(class(predictor.pick) == "factor"){
+    predictor.pick <- droplevels(predictor.pick)
+  }
+  
   try(
     {
       col.key <- aggregate(col.pick, list(predictor.pick), unique)
@@ -202,56 +205,55 @@ group.nmds <- function(otu = otu.nasal,
       legend(legend.location, fill = col.key$x,
              legend = paste0(col.key$Group.1, " (n=", col.key$ns, ")"),
              bty = "n")
-
+      
       if(spider){
-        ordispider(nmds.pick, predictor.pick,
+        ordispider(nmds.pick, predictor.pick, 
                    label = F, lwd = 1, col = "darkgrey")
       }else{
-        ordiellipse(nmds.pick, predictor.pick,
+        ordiellipse(nmds.pick, predictor.pick, 
                     label = F, lwd = 1, col = col.key$x)
       }
     }
   )
-
+  
   points(nmds.pick, pch = 21, bg = col.pick, cex = size)
-
+  
   p <- !is.na(predictor.pick)
   res <- vegan::adonis2(vegdist(otu.pick[  p , ]) ~ predictor.pick[p], permutations = 9999)
-
+  
   bres <- betadisper(vegdist(otu.pick[p , ]), predictor.pick[p])
   bres$group.distances
-
-  predictor.unique <- unique(predictor.pick)
-
+  
+  predictor.unique <- unique(predictor.pick) 
+  
   otu.agg <- aggregate(otu.pick, by = list(predictor.pick), FUN = mean)
-  row.names(otu.agg) <- otu.agg$Group.1
+  row.names(otu.agg) <- otu.agg$Group.1 
   otu.agg$Group.1 <-NULL
   centroid.dist <- vegdist(otu.agg)
-
+  
   print(centroid.dist)
-
+  
   res1 <- c( round(res$`Pr(>F)`[1], 4),
              round(res$R2[1], 3),
              round(res$F[1], 3),
              round(max(centroid.dist), 3),
-             nrow(otu.pick))
+             length(predictor.pick))
   names(res1) <- c("p.val", "R2", "f.stat", "distance.between.centroids", "n")
-
+  
   title(paste0("PERMANOVA\np val =", res1[1],
                ", R2 =", res1[2],
                ", f stat =", res1[3],
                ", n=", res1[5],
                "\n max BC between centroids =", res1[4]))
-
+  
   if(return.table){
-
+    
     return(res1)
-
+    
   }
-
+  
   return(nmds)
 }
-
 
 group.t <- function(response = map$invsimp,
                     predictor = map.nasal$`MOVI PCR`,
