@@ -45,15 +45,11 @@ blast.FUNction <- function(query.fasta = "WADDL_DiagnosticPCR_Primers_dummy.fas"
 #' @param var numeric vector
 #' @return numeric vector without outliers
 #' @export
-filter.outliers <- function(var){
-
-  Q <- quantile(var, probs=c(.25, .75), na.rm = T)
-
+filter.outliers <- function(var, f = 1.5){
+  Q <- quantile(var, probs = c(0.25, 0.75), na.rm = T)
   iqr <- IQR(var, na.rm = T)
-
-  up <-  Q[2]+1.5*iqr # Upper Range
-  low<- Q[1]-1.5*iqr # Lower Range﻿
-
+  up <- Q[2] + f * iqr
+  low <- Q[1] - f * iqr
   return(var > low & var < up)
 }
 
