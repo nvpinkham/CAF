@@ -197,6 +197,7 @@ group.nmds <- function(otu = otu.nasal,
   points(nmds.pick, pch = 21, bg = col.pick, cex = size)
 
   p <- !is.na(predictor.pick)
+  set.seed(42)
   res <- vegan::adonis2(vegdist(otu.pick[  p , ]) ~ predictor.pick[p], permutations = 9999)
 
   bres <- betadisper(vegdist(otu.pick[p , ]), predictor.pick[p])
