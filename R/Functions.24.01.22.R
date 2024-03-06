@@ -65,7 +65,7 @@ filter.outliers <- function(var, f = 1.5){
 #' @return t test results
 #' @export
 plot.1var <- function(var = map$dist2a1,
-                      groups = map$discription,
+                      groups = map$description,
                       col = map$col,
                       exclude.outliers = TRUE){
   
@@ -302,10 +302,10 @@ tax.shared <- function(otu, map,  group1, group2,
   fam.count <- fam.count[,colSums(fam.count) > 0]
   #### Run the thing #####
 
-  map$discription <- as.factor(map$discription)
+  map$description <- as.factor(map$description)
 
-  p <- otu[map$discription == group1, ]
-  r <- otu[map$discription == group2, ]
+  p <- otu[map$description == group1, ]
+  r <- otu[map$description == group2, ]
 
   if(binary){
     p[p > 0] <- 1
@@ -430,13 +430,13 @@ remove_rare <- function( table , cutoff_pro ) {
   return(res )
 }
 
-#map$discription <- map$`MOVI PCR`
+#map$description <- map$`MOVI PCR`
 
 #' makes figure illustrating taxa that are shared between two sites and unique to either site
 #'
 #'
 #' @param mat matrix or OTU table
-#' @param map met data, need column named "discription"
+#' @param map met data, need column named "description"
 #' @return RF results
 #' @export
 pairwiseRF <- function(mat = otu.fecal,
@@ -447,14 +447,14 @@ pairwiseRF <- function(mat = otu.fecal,
                        Factor = 1, plot = T){
   # report mats that are different between two treatments based on RF analysis
   set.seed(42)
-  mat.pick <- mat[map$discription %in% c(dis_1, dis_2 ), ]
-  map.pick <- map[map$discription %in% c(dis_1, dis_2 ), ]
+  mat.pick <- mat[map$description %in% c(dis_1, dis_2 ), ]
+  map.pick <- map[map$description %in% c(dis_1, dis_2 ), ]
 
   #mat.pick$Group <- NULL
 
   mat.pick.rare_removed <- remove_rare(table = mat.pick, cutoff_pro = 0.2)
 
-  spliter <- as.factor(as.character(map.pick$discription))
+  spliter <- as.factor(as.character(map.pick$description))
 
   fit <- randomForest::randomForest(x = mat.pick.rare_removed,
                                     y = spliter,
@@ -477,8 +477,8 @@ pairwiseRF <- function(mat = otu.fecal,
 
     for(j in 1:ncol(mat.pick.rare_removed)){
       i <- fit_imp_sorted$features[j]
-      t1.mean <- mean(mat.pick[map.pick$discription == dis_1, which(colnames(mat.pick) == i)])
-      t2.mean <- mean(mat.pick[map.pick$discription == dis_2, which(colnames(mat.pick) == i)])
+      t1.mean <- mean(mat.pick[map.pick$description == dis_1, which(colnames(mat.pick) == i)])
+      t2.mean <- mean(mat.pick[map.pick$description == dis_2, which(colnames(mat.pick) == i)])
       if( t1.mean >  t2.mean){
         colors[j] <- "cadetblue3"
       }else{
@@ -587,7 +587,7 @@ read.mothur.taxonomy <- function(cons.taxonomy){
 
 taxplot <- function (otu = otu.nasal, 
                      tax = tax.nasal$family, 
-                     var = map.nasal$discription.MOV2, 
+                     var = map.nasal$description.MOV2, 
                      cutoff = 0.05, log = F){
   par(mar = c(8, 4, 4, 2))
   
