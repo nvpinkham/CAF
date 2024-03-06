@@ -297,7 +297,8 @@ tax.shared <- function(otu, map,
                        var, group1, group2,
                        tax.level = tax$family, 
                        PresAbs = F, 
-                       log = T){
+                       log = T, 
+                       taxa2include){
   
   if(PresAbs & log){
     warning("Log transformation not informative when using PresAbs")
@@ -358,7 +359,7 @@ tax.shared <- function(otu, map,
     
     ps.unique[i] <- wilcox.test(t(group1.fam.unique[i,-1]), t(group2.fam.unique[i,-1]), 
                                 exact = F)$p.value
-    ps.shared[i] <- wilcox.test(t(group2.fam.shared[i,-1]), t(group2.fam.shared[i,-1]), 
+    ps.shared[i] <- wilcox.test(t(group1.fam.shared[i,-1]), t(group2.fam.shared[i,-1]), 
                                 exact = F)$p.value
   }
   
@@ -374,7 +375,7 @@ tax.shared <- function(otu, map,
   
   kk <- which(ps.shared > 0.05 |is.na(ps.shared))
   ps.shared[kk] <- " "
-  ps.shared[-kk] <- paste0("(ps.shared p=", ps.shared[-kk], ")")
+  ps.shared[-kk] <- paste0("(shared p=", ps.shared[-kk], ")")
   
   tax.res <- rbind(  g1.u,
                      g1.s,
@@ -400,6 +401,30 @@ tax.shared <- function(otu, map,
   tax.res <- tax.res[ , order(colSums(tax.res), decreasing = F) ]
   
   here <- ceiling(max(colSums(tax.res))) - .5
+  
+  if(!missing(taxa2include)) {
+    
+    print(taxa2include)
+    
+    tax.res2 <- as.data.frame(matrix(nrow = 4, ncol = length(taxa2include)))
+    row.names(tax.res2) <- row.names(tax.res)
+   
+     for(i in 1 : length(taxa2include)){
+      
+      aa <- grep(taxa2include[i], colnames(tax.res))
+      
+      if(length(aa) > 0){
+        
+        tax.res2[ , i ] <- tax.res[ , aa ]
+        colnames(tax.res2)[i] <- colnames(tax.res)[aa]
+      }else{
+        colnames(tax.res2)[i] <- taxa2include[i]
+        tax.res2[ , i ] <- 0
+      }
+    }
+    tax.res <- as.matrix(tax.res2)
+    
+  } 
   
   barplot(tax.res,
           # xlim = c(-3.3, 16),
@@ -438,13 +463,10 @@ tax.shared <- function(otu, map,
   
   return(tax.res)
 }
-#' makes figure illustrating taxa that are shared between two sites and unique to either site
-#'
-#'
-#' @param table site abundance table
-#' @param cutoff_pro proportion of sites that an organism must be observed in ranges from 0 to 1
-#' @return filtered site abundance table
-#' @export
+
+
+
+
 remove_rare <- function( table , cutoff_pro ) {
 
   table <- t(table)# transpose to keep "tidy" ; easier that rewriting function...
