@@ -284,94 +284,123 @@ group.t <- function(response = map$invsimp,
 
 
 #' makes figure illustrating taxa that are shared between two sites and unique to either site
-#'
-#'
+#' Wilcox test and FDR correction done for each taxa 
+#' Wilcox test done to compare the population size of the unique proportion of group1 and group2
+#' If PresAbs = FALSE than Wilcox test is performed on the shared propotion as well. 
+#' Unique ~ grouping 
+#' Shared ~ grouping 
 #' @param otu site abundance table
-#' @param map environmental data coresponding to each site in the the site abundance table
+#' @param map environmental data corresponding to each site in the site abundance table
 #' @return
 #' @export
-tax.shared <- function(otu, map,  group1, group2,
-                       tax.level = tax$family, binary = F, use.max = F, log = T){
-
-  tax.familes <- sort(unique(tax.level))
-  fam.count <- aggregate(t(otu), list(tax.level), sum)
-  row.names(fam.count) <- fam.count$Group.1
-  fam.count$Group.1 <- NULL
-  fam.count <- as.data.frame(t(fam.count))
-
-  fam.count <- fam.count[,colSums(fam.count) > 0]
+tax.shared <- function(otu, map,  
+                       var, group1, group2,
+                       tax.level = tax$family, 
+                       PresAbs = F, 
+                       log = T){
+  
+  if(PresAbs & log){
+    warning("Log transformation not informative when using PresAbs")
+  }
+  
   #### Run the thing #####
-
-  map$description <- as.factor(map$description)
-
-  p <- otu[map$description == group1, ]
-  r <- otu[map$description == group2, ]
-
-  if(binary){
-    p[p > 0] <- 1
-    r[r > 0] <- 1
-  }
-
-  p.dummy2 <- p.dummy <- p
-  p.dummy[,colSums(r) > 0] <- 0# shared OTUs removed
-  p.dummy2[,colSums(  p.dummy) > 0] <- 0# unique OTUs removed
-
-  r.dummy2 <-  r.dummy <- r
-  r.dummy[,colSums(p) > 0] <- 0# shared OTUs removed
-  r.dummy2[,colSums(  r.dummy) > 0] <- 0# unique OTUs removed
-
-  if(use.max){
-
-    p.unique <- aggregate(t(p.dummy), list(tax.level), max)
-    r.unique <- aggregate(t(r.dummy), list(tax.level), max)
-
-    p.shared <- aggregate(t(p.dummy2), list(tax.level), max)
-    r.shared <- aggregate(t(r.dummy2), list(tax.level), max)
-
+  
+  var <- as.factor(var)
+  
+  group1.otus <- otu[var == group1, ]
+  group2.otus <- otu[var == group2, ]
+  
+  if(PresAbs){
+    
+    gg <- "number of discrete OTUs"
+    
+    group1.otus[group1.otus > 0] <- 1
+    group2.otus[group2.otus > 0] <- 1
+    
   }else{
-
-    p.unique <- aggregate(t(p.dummy), list(tax.level), sum)
-    p.shared <- aggregate(t(p.dummy2), list(tax.level), sum)
-
-    r.unique <- aggregate(t(r.dummy), list(tax.level), sum)
-    r.shared <- aggregate(t(r.dummy2), list(tax.level), sum)
+    
+    gg <- "mean population size"
+    
   }
-
-  p.u <-  rowMeans(p.unique[,-1])
-  names(p.u) <- p.unique$Group.1
-
-  r.u <-  rowMeans(r.unique[,-1])
-  names(r.u) <- r.unique$Group.1
-
-  p.s <-  rowMeans(p.shared[,-1])
-  names(p.s) <- p.shared$Group.1
-
-  r.s <-  rowMeans(r.shared[,-1])
-  names(r.s) <- r.shared$Group.1
-
-  tax.res <- rbind(  p.u,
-                     p.s,
-                     r.s,
-                     r.u)
-
+  
+  group1.otus.shared <- group1.otus.unique <- group1.otus
+  group2.otus.shared <- group2.otus.unique <- group2.otus
+  
+  group1.otus.unique[, colSums(group2.otus) > 0] <- 0# shared OTUs removed
+  group1.otus.shared[,colSums(  group1.otus.unique) > 0] <- 0# unique OTUs removed
+  
+  group2.otus.unique[, colSums(group1.otus) > 0] <- 0# shared OTUs removed
+  group2.otus.shared[,colSums(  group2.otus.unique) > 0] <- 0# unique OTUs removed
+  
+  ################################################################################
+  group1.fam.unique <- aggregate(t(group1.otus.unique), list(tax.level), sum)
+  group1.fam.shared <- aggregate(t(group1.otus.shared), list(tax.level), sum)
+  ################################################################################
+  group2.fam.unique <- aggregate(t(group2.otus.unique), list(tax.level), sum)
+  group2.fam.shared <- aggregate(t(group2.otus.shared), list(tax.level), sum)
+  ################################################################################
+  
+  g1.u <-  rowMeans(group1.fam.unique[,-1])
+  names(g1.u) <- group1.fam.unique$Group.1 
+  
+  g1.s <-  rowMeans(group1.fam.shared[,-1])
+  names(g1.s) <- group1.fam.shared$Group.1 
+  
+  g2.u <-  rowMeans(group2.fam.unique[,-1])
+  names(g2.u) <- group2.fam.unique$Group.1 
+  
+  g2.s <-  rowMeans(group2.fam.shared[,-1])
+  names(g2.s) <- group2.fam.shared$Group.1 
+  
+  ps.unique <- ps.shared <- NULL
+  
+  for(i in 1 : nrow(group1.fam.unique)){
+    
+    ps.unique[i] <- wilcox.test(t(group1.fam.unique[i,-1]), t(group2.fam.unique[i,-1]), 
+                                exact = F)$p.value
+    ps.shared[i] <- wilcox.test(t(group2.fam.shared[i,-1]), t(group2.fam.shared[i,-1]), 
+                                exact = F)$p.value
+  }
+  
+  ps.unique <- p.adjust(ps.unique, method = "fdr")
+  ps.shared <- p.adjust(ps.shared, method = "fdr")
+  
+  ps.unique <- round(ps.unique, 5)
+  ps.shared <- round(ps.shared, 5)
+  
+  jj <- which(ps.unique > 0.05 |is.na(ps.unique))
+  ps.unique[jj] <- " "
+  ps.unique[-jj] <- paste0("(unique p=", ps.unique[-jj], ")")
+  
+  kk <- which(ps.shared > 0.05 |is.na(ps.shared))
+  ps.shared[kk] <- " "
+  ps.shared[-kk] <- paste0("(unique p=", ps.unique[-kk], ")")
+  
+  tax.res <- rbind(  g1.u,
+                     g1.s,
+                     g2.s,
+                     g2.u)
+  
+  colnames(tax.res) <- paste(colnames(tax.res), ps.unique, ps.shared)
+  
   rownames(tax.res) <- c(paste("unique to", group1),
-                         paste("shared - pop size in", group1),
-                         paste("shared - pop size in", group2),
+                         paste("shared - ", gg, "in", group1),
+                         paste("shared - ", gg, "in", group2),
                          paste("unique to ", group2))
-
+  
   tax.res <- tax.res[ , colSums(tax.res) != 0 ]
-
+  
   par(mar = c(3, 15, 4, 4))
-
+  
   par(xpd = TRUE) #Draw outside plot area
-
+  
   if(log){
     tax.res <- log10(as.matrix(tax.res) + 1)#+ .000001)
   }
   tax.res <- tax.res[ , order(colSums(tax.res), decreasing = F) ]
-
+  
   here <- ceiling(max(colSums(tax.res))) - .5
-
+  
   barplot(tax.res,
           # xlim = c(-3.3, 16),
           cex.axis=.75,
@@ -382,30 +411,33 @@ tax.shared <- function(otu, map,  group1, group2,
           xlab = "median population size (log 10)",
           las = 1,
           col =c( "orange","#b38a61", "#887382", "purple"))
-
-
+  
+  
   #segments(x0 = here - log10(2), x1 = here, y0 = 16, y1 = 16)
   #text(here - .1, 17, "5", cex = 0.5)
-
-  segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, lwd = 2)
-  text(here -.5, 15, "10", cex = 0.5)
-
-  segments(x0 = here - log10(101), x1 = here, y0 = 12, y1 = 12,  lwd = 2)
-  text(here - .5, 13, "100", cex = 0.5)
-
-  segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, lwd = 2)
-  text(here - .5, 11, "1000", cex = 0.5)
-
-
+  
+  if(log){
+    segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, lwd = 2)
+    text(here -.5, 15, "10", cex = 0.5)
+    
+    segments(x0 = here - log10(101), x1 = here, y0 = 12, y1 = 12,  lwd = 2)
+    text(here - .5, 13, "100", cex = 0.5)
+    
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, lwd = 2)
+    text(here - .5, 11, "1000", cex = 0.5)
+    
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, lwd = 2)
+    text(here - .5, 11, "1000", cex = 0.5)
+  }
+  
   legend("bottomright",
          fill =c( "orange","#b38a61", "#887382", "purple"),
          bty = "n",
          legend = row.names(tax.res))
-
-
+  
+  
   return(tax.res)
 }
-
 #' makes figure illustrating taxa that are shared between two sites and unique to either site
 #'
 #'
