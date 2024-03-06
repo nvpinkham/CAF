@@ -1,4 +1,4 @@
-ps#' Blast wrapper
+#' Blast wrapper
 #'
 #' Run local blast and import the results as text file
 #' @param query.fasta fasta file of sequence to search for
