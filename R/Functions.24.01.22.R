@@ -1,4 +1,4 @@
-#' Blast wrapper
+ps#' Blast wrapper
 #'
 #' Run local blast and import the results as text file
 #' @param query.fasta fasta file of sequence to search for
@@ -374,7 +374,7 @@ tax.shared <- function(otu, map,
   
   kk <- which(ps.shared > 0.05 |is.na(ps.shared))
   ps.shared[kk] <- " "
-  ps.shared[-kk] <- paste0("(unique p=", ps.unique[-kk], ")")
+  ps.shared[-kk] <- paste0("(ps.shared p=", ps.shared[-kk], ")")
   
   tax.res <- rbind(  g1.u,
                      g1.s,
