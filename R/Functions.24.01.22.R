@@ -598,17 +598,17 @@ color.groups <- function(vec, cols = c("darkorange", #(Red)
                                        "#FFD700", #(Gold)
                                        "#008B8B", #(Dark Cyan)
                                        "#2E8B57", #(Sea Green)
-                                       "#CD5C5C")) #(Indian Red)))
-{
-  levels <- unique(vec)
+                                       "#CD5C5C")){ #(Indian Red)
+  if(class(vec) == "factor"){
+    levels <- levels(vec)
+  }else{
+    levels <- unique(vec)
+  }
   vec.col <- vector(length = length(vec))
-
-  for(i in 1 : length(levels)){
+  for (i in 1:length(levels)) {
     vec.col[vec == levels[i]] <- cols[i]
   }
-
   vec.col[is.na(vec)] <- "grey40"
-
   return(vec.col)
 }
 
