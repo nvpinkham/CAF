@@ -283,7 +283,7 @@ group.t <- function(response = map$invsimp,
 }
 
 
-#' makes figure illustrating taxa that are shared between two sites and unique to either site
+#' makes table taxa that are shared between two sites and unique to either site
 #' Wilcox test and FDR correction done for each taxa 
 #' Wilcox test done to compare the population size of the unique proportion of group1 and group2
 #' If PresAbs = FALSE than Wilcox test is performed on the shared propotion as well. 
@@ -293,177 +293,294 @@ group.t <- function(response = map$invsimp,
 #' @param map environmental data corresponding to each site in the site abundance table
 #' @return
 #' @export
-tax.shared <- function(otu, map,  
-                       var, group1, group2,
-                       tax.level = tax$family, 
-                       PresAbs = F, 
-                       log = T, 
-                       taxa2include){
-  
-  if(PresAbs & log){
+tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family, 
+                              PresAbs = F, log = T, taxa2include) {
+  if (PresAbs & log) {
     warning("Log transformation not informative when using PresAbs")
   }
-  
-  #### Run the thing #####
-  
   var <- as.factor(var)
-  
   group1.otus <- otu[var == group1, ]
   group2.otus <- otu[var == group2, ]
-  
-  if(PresAbs){
-    
+  if (PresAbs) {
     gg <- "number of discrete OTUs"
-    
     group1.otus[group1.otus > 0] <- 1
     group2.otus[group2.otus > 0] <- 1
-    
   }else{
-    
     gg <- "mean population size"
-    
   }
-  
   group1.otus.shared <- group1.otus.unique <- group1.otus
   group2.otus.shared <- group2.otus.unique <- group2.otus
+  group1.otus.unique[, colSums(group2.otus) > 0] <- 0
+  group1.otus.shared[, colSums(group1.otus.unique) > 0] <- 0
+  group2.otus.unique[, colSums(group1.otus) > 0] <- 0
+  group2.otus.shared[, colSums(group2.otus.unique) > 0] <- 0
   
-  group1.otus.unique[, colSums(group2.otus) > 0] <- 0# shared OTUs removed
-  group1.otus.shared[,colSums(  group1.otus.unique) > 0] <- 0# unique OTUs removed
-  
-  group2.otus.unique[, colSums(group1.otus) > 0] <- 0# shared OTUs removed
-  group2.otus.shared[,colSums(  group2.otus.unique) > 0] <- 0# unique OTUs removed
-  
-  ################################################################################
-  group1.fam.unique <- aggregate(t(group1.otus.unique), list(tax.level), sum)
-  group1.fam.shared <- aggregate(t(group1.otus.shared), list(tax.level), sum)
-  ################################################################################
+  group1.fam.unique <- aggregate(t(group1.otus.unique), list(tax.level),  sum)
+  group1.fam.shared <- aggregate(t(group1.otus.shared), list(tax.level),  sum)
   group2.fam.unique <- aggregate(t(group2.otus.unique), list(tax.level), sum)
   group2.fam.shared <- aggregate(t(group2.otus.shared), list(tax.level), sum)
-  ################################################################################
   
-  g1.u <-  rowMeans(group1.fam.unique[,-1])
-  names(g1.u) <- group1.fam.unique$Group.1 
-  
-  g1.s <-  rowMeans(group1.fam.shared[,-1])
-  names(g1.s) <- group1.fam.shared$Group.1 
-  
-  g2.u <-  rowMeans(group2.fam.unique[,-1])
-  names(g2.u) <- group2.fam.unique$Group.1 
-  
-  g2.s <-  rowMeans(group2.fam.shared[,-1])
-  names(g2.s) <- group2.fam.shared$Group.1 
+  g1.u <- rowMeans(group1.fam.unique[, -1])
+  names(g1.u) <- group1.fam.unique$Group.1
+  g1.s <- rowMeans(group1.fam.shared[, -1])
+  names(g1.s) <- group1.fam.shared$Group.1
+  g2.u <- rowMeans(group2.fam.unique[, -1])
+  names(g2.u) <- group2.fam.unique$Group.1
+  g2.s <- rowMeans(group2.fam.shared[, -1])
+  names(g2.s) <- group2.fam.shared$Group.1
   
   ps.unique <- ps.shared <- NULL
   
-  for(i in 1 : nrow(group1.fam.unique)){
-    
-    ps.unique[i] <- wilcox.test(t(group1.fam.unique[i,-1]), t(group2.fam.unique[i,-1]), 
-                                exact = F)$p.value
-    ps.shared[i] <- wilcox.test(t(group1.fam.shared[i,-1]), t(group2.fam.shared[i,-1]), 
-                                exact = F)$p.value
+  for (i in 1:nrow(group1.fam.unique)) {
+    ps.unique[i] <- wilcox.test(t(group1.fam.unique[i, -1]), 
+                                t(group2.fam.unique[i, -1]), exact = F)$p.value
+    ps.shared[i] <- wilcox.test(t(group1.fam.shared[i, -1]), 
+                                t(group2.fam.shared[i, -1]), exact = F)$p.value
   }
-  
   ps.unique <- p.adjust(ps.unique, method = "fdr")
   ps.shared <- p.adjust(ps.shared, method = "fdr")
-  
   ps.unique <- round(ps.unique, 5)
   ps.shared <- round(ps.shared, 5)
-  
-  jj <- which(ps.unique > 0.05 |is.na(ps.unique))
+  jj <- which(ps.unique > 0.05 | is.na(ps.unique))
   ps.unique[jj] <- " "
   ps.unique[-jj] <- paste0("(unique p=", ps.unique[-jj], ")")
-  
-  kk <- which(ps.shared > 0.05 |is.na(ps.shared))
+  kk <- which(ps.shared > 0.05 | is.na(ps.shared))
   ps.shared[kk] <- " "
   ps.shared[-kk] <- paste0("(shared p=", ps.shared[-kk], ")")
-  
-  tax.res <- rbind(  g1.u,
-                     g1.s,
-                     g2.s,
-                     g2.u)
-  
-  colnames(tax.res) <- paste(colnames(tax.res), ps.unique, ps.shared)
-  
-  rownames(tax.res) <- c(paste("unique to", group1),
-                         paste("shared - ", gg, "in", group1),
-                         paste("shared - ", gg, "in", group2),
+  tax.res <- rbind(g1.u, g1.s, g2.s, g2.u)
+  colnames(tax.res) <- paste(colnames(tax.res), ps.unique, 
+                             ps.shared)
+  rownames(tax.res) <- c(paste("unique to", group1), paste("shared - ", 
+                                                           gg, "in", group1), paste("shared - ", gg, "in", group2), 
                          paste("unique to ", group2))
+  tax.res <- tax.res[, colSums(tax.res) != 0]
+
   
-  tax.res <- tax.res[ , colSums(tax.res) != 0 ]
-  
-  par(mar = c(3, 15, 4, 4))
-  
-  par(xpd = TRUE) #Draw outside plot area
-  
-  if(log){
-    tax.res <- log10(as.matrix(tax.res) + 1)#+ .000001)
+  if (log) {
+    tax.res <- log10(as.matrix(tax.res) + 1)
   }
-  tax.res <- tax.res[ , order(colSums(tax.res), decreasing = F) ]
   
-  here <- ceiling(max(colSums(tax.res))) - .5
-  
-  if(!missing(taxa2include)) {
-    
+  tax.res <- tax.res[, order(colSums(tax.res), decreasing = F)]
+  here <- ceiling(max(colSums(tax.res))) - 0.5
+  if (!missing(taxa2include)) {
     print(taxa2include)
-    
     tax.res2 <- as.data.frame(matrix(nrow = 4, ncol = length(taxa2include)))
     row.names(tax.res2) <- row.names(tax.res)
-   
-     for(i in 1 : length(taxa2include)){
-      
+    for (i in 1:length(taxa2include)) {
       aa <- grep(taxa2include[i], colnames(tax.res))
-      
-      if(length(aa) > 0){
-        
-        tax.res2[ , i ] <- tax.res[ , aa ]
+      if (length(aa) > 0) {
+        tax.res2[, i] <- tax.res[, aa]
         colnames(tax.res2)[i] <- colnames(tax.res)[aa]
-      }else{
+      }
+      else {
         colnames(tax.res2)[i] <- taxa2include[i]
-        tax.res2[ , i ] <- 0
+        tax.res2[, i] <- 0
       }
     }
     tax.res <- as.matrix(tax.res2)
-    
-  } 
-  
-  barplot(tax.res,
-          # xlim = c(-3.3, 16),
-          cex.axis=.75,
-          cex.names=.75,
-          xaxt='n',
-          horiz=T ,
-          main = "",
-          xlab = "median population size (log 10)",
-          las = 1,
-          col =c( "orange","#b38a61", "#887382", "purple"))
-  
-  
-  #segments(x0 = here - log10(2), x1 = here, y0 = 16, y1 = 16)
-  #text(here - .1, 17, "5", cex = 0.5)
-  
-  if(log){
-    segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, lwd = 2)
-    text(here -.5, 15, "10", cex = 0.5)
-    
-    segments(x0 = here - log10(101), x1 = here, y0 = 12, y1 = 12,  lwd = 2)
-    text(here - .5, 13, "100", cex = 0.5)
-    
-    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, lwd = 2)
-    text(here - .5, 11, "1000", cex = 0.5)
-    
-    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, lwd = 2)
-    text(here - .5, 11, "1000", cex = 0.5)
   }
-  
-  legend("bottomright",
-         fill =c( "orange","#b38a61", "#887382", "purple"),
-         bty = "n",
-         legend = row.names(tax.res))
-  
-  
+ 
   return(tax.res)
 }
 
+tax.shared <- function(otu, var, group1, group2, tax.level = tax$family, 
+                       PresAbs = F, log = T, taxa2include){
+  
+  
+  tax.res <- tax.shared.table(otu, var, group1, group2, tax.level, PresAbs, log, taxa2include)
+  
+  par(mar = c(3, 20, 4, 4))
+  par(xpd = TRUE)
+  if (log) {
+    tax.res <- log10(as.matrix(tax.res) + 1)
+  }
+  tax.res <- tax.res[, order(colSums(tax.res), decreasing = F)]
+  here <- ceiling(max(colSums(tax.res))) - 0.5
+  if (!missing(taxa2include)) {
+    print(taxa2include)
+    tax.res2 <- as.data.frame(matrix(nrow = 4, ncol = length(taxa2include)))
+    row.names(tax.res2) <- row.names(tax.res)
+    for (i in 1:length(taxa2include)) {
+      aa <- grep(taxa2include[i], colnames(tax.res))
+      if (length(aa) > 0) {
+        tax.res2[, i] <- tax.res[, aa]
+        colnames(tax.res2)[i] <- colnames(tax.res)[aa]
+      }
+      else {
+        colnames(tax.res2)[i] <- taxa2include[i]
+        tax.res2[, i] <- 0
+      }
+    }
+    tax.res <- as.matrix(tax.res2)
+  }
+  barplot(tax.res, cex.axis = 0.75, cex.names = 0.75, xaxt = "n", 
+          horiz = T, main = "", xlab = "median population size (log 10)", 
+          las = 1, col = c("orange", "#b38a61", "#887382", "purple"))
+  if (log) {
+    segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, 
+             lwd = 2)
+    text(here - 0.5, 15, "10", cex = 0.5)
+    segments(x0 = here - log10(101), x1 = here, y0 = 12, 
+             y1 = 12, lwd = 2)
+    text(here - 0.5, 13, "100", cex = 0.5)
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, 
+             lwd = 2)
+    text(here - 0.5, 11, "1000", cex = 0.5)
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, 
+             lwd = 2)
+    text(here - 0.5, 11, "1000", cex = 0.5)
+  }
+  legend("bottomleft", fill = c("orange", "#b38a61", "#887382", 
+                                "purple"), bty = "n", legend = row.names(tax.res), cex = .75)
+  return(tax.res)
+}
+
+# multicomp, do the same anaylsis of var for multiple groups
+tax.shared.multicomp <- function (otu, 
+                                  var.multicomp = map$antibiotic.group, 
+                                  var.multicomp.groups = unique( map$antibiotic.group),
+                                  var = map$day2anti,
+                                  group1 = 0,
+                                  group2 = 10, 
+                                  group1.color = "grey",
+                                  group2.color = map$col.group,
+                                  tax.level = tax$family, 
+                                  PresAbs = F, 
+                                  log = T, 
+                                  taxa2include = fam$Group.1){
+  
+  group1.name <- deparse(substitute(group1))
+  var.multicomp.groups <- rev(var.multicomp.groups)# to match order of bars
+
+  if(length(group1.color) == 1){
+    # if only 1 color is specified make vector of that color to cover every sample
+    group1.color <- rep(group1.color, nrow(otu))
+  }
+  if(length(group2.color) == 1){
+    group2.color <- rep(group2.color, nrow(otu))
+  }
+  
+  
+  n <- length(var.multicomp.groups)
+  n.taxa <- length(taxa2include)
+  add <- vector(length = n)
+  add[-1] <- T
+  
+  res.all <- list()
+  
+  for(i in 1 : n){
+    
+    p <- var.multicomp == var.multicomp.groups[i]
+    
+    res.i <- tax.shared.table(otu[p , ], var[p], group1, group2, tax.level, PresAbs, log, taxa2include)
+    res.all[[i]] <- res.i 
+  }
+
+  names(res.all) <- var.multicomp.groups
+  
+  here =  max(sapply(res.all, function(x) colSums(x)))
+  unique.1.col <- NULL
+  shared.1.col <- NULL
+  shared.2.col <- NULL
+  unique.2.col <- NULL
+  
+  tiff( paste0("TaxShared_", Sys.Date(), ".tiff"), 
+        units="in", width = 12, height = n * n.taxa / 10, res=300)
+  
+  par(mar = c(3, 20, 4, 20))
+  par(xpd = TRUE)
+  
+  for(i in 1 : n){
+
+    p <- var.multicomp == var.multicomp.groups[i]
+    
+    unique.1.col[i] <- group1.color[p][1]
+    unique.2.col[i] <- group2.color[p][1]
+    
+    if(i != 1){
+      new.colnames <- gsub(paste0(taxa2include, collapse = "|"), "", colnames(  res.all[[i]]))
+      new.colnames <- gsub("  ", "", new.colnames)
+    }else{
+      new.colnames <- colnames(res.all[[i]])
+    }
+    shared.1 <- mixcolor(.2,
+                         sRGB(t(col2rgb(group1.color[p][1]))),
+                         sRGB(t(col2rgb(group2.color[p][1]))))
+    
+    shared.2 <- mixcolor(.5,
+                         sRGB(t(col2rgb(group1.color[p][1]))),
+                         sRGB(t(col2rgb(group2.color[p][1]))))
+    
+    
+    shared.1.col[i] <- rgb(shared.1@coords, maxColorValue = 255)
+    shared.2.col[i] <- rgb(shared.2@coords, maxColorValue = 255)
+    
+    #colnames(res.i) <- paste(   new.colnames, var.multicomp.groups[i])
+    colnames(  res.all[[i]]) <- new.colnames
+    
+    barplot(res.all[[i]], 
+            ylim = c(0, ncol(res.all[[i]]) * (n + 1)),
+            xlim = c(0, here),
+            cex.axis = 0.5, 
+            cex.names = 0.5, 
+            xaxt = "n", 
+            horiz = T, 
+            main = "",
+            xlab = "median population size (log 10)", 
+            las = 1,
+            add = add[i],
+            space = c(n - i, rep(n, ncol(  res.all[[i]]))[-1]), 
+            col = c(unique.1.col[i],    
+                    shared.1.col[i] ,     
+                    shared.2.col[i] , 
+                    unique.2.col[i] ))
+  }
+
+  if (log) {
+    segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, 
+             lwd = 2)
+    text(here - 0.5, 15, "10", cex = 0.5)
+    segments(x0 = here - log10(101), x1 = here, y0 = 12, 
+             y1 = 12, lwd = 2)
+    text(here - 0.5, 13, "100", cex = 0.5)
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, 
+             lwd = 2)
+    text(here - 0.5, 11, "1000", cex = 0.5)
+    segments(x0 = here - 3, x1 = here, y0 = 10, y1 = 10, 
+             lwd = 2)
+    text(here - 0.5, 11, "1000", cex = 0.5)
+  }
+
+  leg <- aggregate( map$col.group, list(map$antibiotic.group), unique)
+  
+  text(here+.3, n.taxa * n / 2, srt = 0, "u1", pos = 4)
+  text(here+.6, n.taxa * n / 2, srt = 0, "s1", pos = 4)
+  text(here+.9, n.taxa * n / 2, srt = 0, "s2", pos = 4)
+  text(here+1.2, n.taxa * n / 2, srt = 0, "u2", pos = 4)
+  
+  legend(here+.3, n.taxa * n / 2,
+         fill =  unique.1.col, 
+         legend =  rep("", n), 
+         cex = 1, bty = "n")
+  
+  legend(here+.6, n.taxa * n / 2,
+         fill =  shared.1.col, 
+         legend =  rep("", n), 
+         cex = 1, bty = "n")
+  
+  legend(here+.9, n.taxa * n / 2,
+         fill =  shared.2.col, 
+         legend =  rep("", n), 
+         cex = 1, bty = "n")
+  
+  legend(here+1.2, n.taxa * n / 2,
+         fill =  unique.2.col, 
+         legend =  var.multicomp.groups, 
+         cex = 1,
+         bty = "n")
+  
+  dev.off() #turn off develop
+}
 
 
 
