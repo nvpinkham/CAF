@@ -386,7 +386,6 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
 tax.shared <- function(otu, var, group1, group2, tax.level = tax$family, 
                        PresAbs = F, log = T, taxa2include){
   
-  
   tax.res <- tax.shared.table(otu, var, group1, group2, tax.level, PresAbs, log, taxa2include)
   
   par(mar = c(3, 20, 4, 4))
@@ -435,7 +434,6 @@ tax.shared <- function(otu, var, group1, group2, tax.level = tax$family,
   return(tax.res)
 }
 
-# multicomp, do the same anaylsis of var for multiple groups
 tax.shared.multicomp <- function (otu, 
                                   var.multicomp = map$antibiotic.group, 
                                   var.multicomp.groups = unique( map$antibiotic.group),
@@ -581,8 +579,6 @@ tax.shared.multicomp <- function (otu,
   
   dev.off() #turn off develop
 }
-
-
 
 remove_rare <- function( table , cutoff_pro ) {
 
