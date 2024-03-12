@@ -363,7 +363,7 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
   }
   
   tax.res <- tax.res[, order(colSums(tax.res), decreasing = F)]
-  here <- ceiling(max(colSums(tax.res))) - 0.5
+
   if (!missing(taxa2include)) {
     print(taxa2include)
     tax.res2 <- as.data.frame(matrix(nrow = 4, ncol = length(taxa2include)))
@@ -392,9 +392,7 @@ tax.shared <- function(otu, var, group1, group2, tax.level = tax$family,
   
   par(mar = c(3, 20, 4, 4))
   par(xpd = TRUE)
-  if (log) {
-    tax.res <- log10(as.matrix(tax.res) + 1)
-  }
+
   tax.res <- tax.res[, order(colSums(tax.res), decreasing = F)]
   here <- ceiling(max(colSums(tax.res))) - 0.5
   if (!missing(taxa2include)) {
