@@ -65,7 +65,7 @@ filter.outliers <- function(var, f = 1.5){
 #' @return t test results
 #' @export
 plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = map$col.group[p], 
-                       exclude.outliers = TRUE, p.adjust = T){
+                       exclude.outliers = TRUE, p.adjust = T, symbols = T){
   if (missing(col)) {
     col <- color.groups(groups)
   }
@@ -86,9 +86,13 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
   var <- var1
   groups <- droplevels(groups1)
   
-  boxplot(var ~ groups, col = col.agg$x, xlab = groups.name, 
-          ylab = var.name, ylim = range(var, na.rm = T) * c(0.9, 
-                                                            1.2))
+  boxplot(var ~ groups, 
+          col = col.agg$x,
+          xlab = "", 
+          las = 2,
+          ylab = var.name,
+          ylim = range(var, na.rm = T) * c(0.9, 
+                                           1.2))
   outs <- aggregate(var, list(groups), filter.outliers)
   aa = 0
   groups.unique <- levels(groups)
@@ -136,8 +140,18 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
                x1 = g2, 
                y1 = h)
       
-      text(x = mean(c(g1, g2)), y = h, paste("p = ", round(t.res.all$p.fdr[i], 
-                                                           5), "\n"), col = 1, cex = 0.5)
+      if(symbols){
+        text(x = mean(c(g1, g2)), 
+             y = h, "*", pos = 2)
+      }else{
+        text(x = mean(c(g1, g2)), 
+             y = h,
+             paste("p = ", 
+                   round(t.res.all$p.fdr[i], 
+                         5), "\n"), 
+             col = 1, 
+             cex = 0.5)
+      }
     }
   }
   
