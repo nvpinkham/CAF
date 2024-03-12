@@ -58,103 +58,91 @@ filter.outliers <- function(var, f = 1.5){
 }
 
 #' Plots 1 numeric vector against 1 categorical vector
-#'
+#' now does fdr
 #'
 #' @param var numeric vector
 #' @param groups categories vector
 #' @return t test results
 #' @export
-plot.1var <- function(var = map$dist2a1,
-                      groups = map$description,
-                      col = map$col,
-                      exclude.outliers = TRUE){
-  
-  if(missing(col)) {
+plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = map$col.group[p], 
+                       exclude.outliers = TRUE, p.adjust = T){
+  if (missing(col)) {
     col <- color.groups(groups)
   }
-  
   var.name <- deparse(substitute(var))
   groups.name <- deparse(substitute(groups))
-  
-  if(typeof(groups) == "character"){
+  if (typeof(groups) == "character") {
     groups <- factor(groups)
   }
-
-  try({col.agg <- aggregate(col, list(groups), unique)}, silent = T)
-          
-  if(max(lengths(col.agg$x)) > 1){
+  try({
+    col.agg <- aggregate(col, list(groups), unique)
+  }, silent = T)
+  if (max(lengths(col.agg$x)) > 1) {
     col.agg$x <- "grey"
     message("colors did not correspond to groups")
   }
-  
   var1 <- var[!is.na(groups) & !is.na(var)]
   groups1 <- groups[!is.na(groups) & !is.na(var)]
-  
   var <- var1
   groups <- droplevels(groups1)
   
-  boxplot(var ~ groups,
-          col = col.agg$x,
-          xlab = groups.name,
-          ylab = var.name,
-          ylim = range(var, na.rm = T) * c(.9, 1.1))
-  
+  boxplot(var ~ groups, col = col.agg$x, xlab = groups.name, 
+          ylab = var.name, ylim = range(var, na.rm = T) * c(0.9, 
+                                                            1.2))
   outs <- aggregate(var, list(groups), filter.outliers)
   aa = 0
-  
   groups.unique <- levels(groups)
   groups.unique <- groups.unique[!is.na(groups.unique)]
-  
-  n.comps <- sum(1 : (length(groups.unique) - 1))
+  n.comps <- sum(1:(length(groups.unique) - 1))
   t.res.all <- as.data.frame(matrix(nrow = n.comps, ncol = 8))
-  
-  colnames(t.res.all) <- c("group1", "group2",
-                           "p", "effect_size", "t_stat", "df", "95_lo", "95_hi")
+  colnames(t.res.all) <- c("group1", "group2", "p", "effect_size", 
+                           "t_stat", "df", "95_lo", "95_hi")
   counts = 0
-  
-  for(i in 1 : length(groups.unique)){
-    for(j in 1 : i){
-      if(j != i){
-        
+  for (i in 1:length(groups.unique)) {
+    for (j in 1:i) {
+      if (j != i) {
         counts <- counts + 1
-        
         var.i <- var[which(groups == groups.unique[i])]
         var.j <- var[which(groups == groups.unique[j])]
-        
-        if(exclude.outliers){
-          
+        if (exclude.outliers) {
           t.res <- t.test(var.i[outs$x[[i]]], var.j[outs$x[[j]]])
-        }else{
+        }
+        else {
           t.res <- t.test(var.i, var.j)
         }
-        
-        t.res.all[counts,] <- c(as.character(groups.unique[i]),
-                                as.character(groups.unique[j]),
-                                t.res$p.value,
-                                diff(t.res$estimate),
-                                t.res$statistic,
-                                t.res$parameter,
-                                t.res$conf.int[1:2])
-        
-        
-        if(t.res$p.value < 0.05){
-          aa <- aa + (diff(range(var, na.rm = T)) / 50)
-          
-          print(i)
-          print(j)
-          
-          #boxplot(var.i, var.j, main = t.res$p.value)
-          
-          h <- max(c(var.i, var.j), na.rm = T) + (aa * 2)
-          
-          
-          segments(x0 = i, y0 = h, x1 = j, y1 = h)
-          text(mean(c(i,j)), h,
-               paste("p = ", round(t.res$p.value, 5), "\n"),
-               col = 1, cex = .5)
-        }
+        t.res.all[counts, ] <- c(as.character(groups.unique[i]), 
+                                 as.character(groups.unique[j]), t.res$p.value, 
+                                 diff(t.res$estimate), t.res$statistic, t.res$parameter, 
+                                 t.res$conf.int[1:2])
       }
     }
+  }
+  
+  if(p.adjust){
+    t.res.all$p.fdr <- p.adjust(t.res.all$p)
+  }else{
+    t.res.all$p.fdr <- as.numeric(t.res.all$p)
+  }
+  
+  for(i in 1 : nrow(t.res.all)){
+    if ( t.res.all$p.fdr[i]  < 0.05) {
+     
+      g1 <- which(groups.unique == t.res.all$group1[i])
+      g2 <- which(groups.unique == t.res.all$group2[i])
+      h <- max(var) + i * diff(range(var, na.rm = T)) / 50
+      
+      segments(x0 = g1,
+               y0 = h, 
+               x1 = g2, 
+               y1 = h)
+      
+      text(x = mean(c(g1, g2)), y = h, paste("p = ", round(t.res.all$p.fdr[i], 
+                                                           5), "\n"), col = 1, cex = 0.5)
+    }
+  }
+  
+  if(!p.adjust){
+    t.res.all$p.fdr <- NULL
   }
   return(t.res.all)
 }
