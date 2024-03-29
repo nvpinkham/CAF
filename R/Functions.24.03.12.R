@@ -792,7 +792,7 @@ taxplot <- function (otu = otu.nasal,
   barplot(tax.agg.pick, width = 1,
           beside = F, 
           xlim = c(0, 
-                   ncol(tax.agg.pick) * 1.5), 
+                   ncol(tax.agg.pick) * 1.75), 
           space = 0.1, col = col.key[, 2], las = 2,
           ylab = label.y)
   
