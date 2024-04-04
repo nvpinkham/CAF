@@ -434,106 +434,77 @@ tax.shared <- function(otu, var, group1, group2, tax.level = tax$family,
   return(tax.res)
 }
 
-tax.shared.multicomp <- function (otu, 
-                                  var.multicomp = map$antibiotic.group, 
-                                  var.multicomp.groups = unique( map$antibiotic.group),
-                                  var = map$day2anti,
-                                  group1 = 0,
-                                  group2 = 10, 
-                                  group1.color = "grey",
-                                  group2.color = map$col.group,
-                                  tax.level = tax$family, 
-                                  PresAbs = F, 
-                                  log = T, 
-                                  taxa2include = fam$Group.1){
+tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var.multicomp.groups = unique(map$antibiotic.group), 
+          var = map$day2anti, group1 = 0, group2 = 10, group1.color = "grey", 
+          group2.color = map$col.group, tax.level = tax$family, PresAbs = F, 
+          log = T, tiff = T, export_path="TaxShared_",  taxa2include = fam$Group.1){
   
   group1.name <- deparse(substitute(group1))
-  var.multicomp.groups <- rev(var.multicomp.groups)# to match order of bars
-
-  if(length(group1.color) == 1){
-    # if only 1 color is specified make vector of that color to cover every sample
+  var.multicomp.groups <- rev(var.multicomp.groups)
+  if (length(group1.color) == 1) {
     group1.color <- rep(group1.color, nrow(otu))
   }
-  if(length(group2.color) == 1){
+  if (length(group2.color) == 1) {
     group2.color <- rep(group2.color, nrow(otu))
   }
-  
-  
   n <- length(var.multicomp.groups)
   n.taxa <- length(taxa2include)
   add <- vector(length = n)
   add[-1] <- T
-  
   res.all <- list()
-  
-  for(i in 1 : n){
-    
+  for (i in 1:n) {
     p <- var.multicomp == var.multicomp.groups[i]
-    
-    res.i <- tax.shared.table(otu[p , ], var[p], group1, group2, tax.level, PresAbs, log, taxa2include)
-    res.all[[i]] <- res.i 
+    res.i <- tax.shared.table(otu[p, ], var[p], group1, group2, 
+                              tax.level, PresAbs, log, taxa2include)
+    res.all[[i]] <- res.i
   }
-
   names(res.all) <- var.multicomp.groups
-  
-  here =  max(sapply(res.all, function(x) colSums(x)))
+  here = max(sapply(res.all, function(x) colSums(x)))
   unique.1.col <- NULL
   shared.1.col <- NULL
   shared.2.col <- NULL
   unique.2.col <- NULL
   
-  tiff( paste0("TaxShared_", Sys.Date(), ".tiff"), 
-        units="in", width = 12, height = n * n.taxa / 10, res=300)
+  if(tiff){
+    
+    tiff(paste0(export_path, Sys.Date(), ".tiff"), units = "in", 
+         width = 12, height = n * n.taxa/10, res = 300)
+    
+  }else{
+    
+    setEPS()
+    postscript(paste0(export_path, Sys.Date(),".eps"), width=12,  height = n * n.taxa/10)
+    
+  }
   
   par(mar = c(3, 20, 4, 20))
   par(xpd = TRUE)
-  
-  for(i in 1 : n){
-
+  for (i in 1:n) {
     p <- var.multicomp == var.multicomp.groups[i]
-    
     unique.1.col[i] <- group1.color[p][1]
     unique.2.col[i] <- group2.color[p][1]
-    
-    if(i != 1){
-      new.colnames <- gsub(paste0(taxa2include, collapse = "|"), "", colnames(  res.all[[i]]))
+    if (i != 1) {
+      new.colnames <- gsub(paste0(taxa2include, collapse = "|"), 
+                           "", colnames(res.all[[i]]))
       new.colnames <- gsub("  ", "", new.colnames)
-    }else{
+    }
+    else {
       new.colnames <- colnames(res.all[[i]])
     }
-    shared.1 <- mixcolor(.2,
-                         sRGB(t(col2rgb(group1.color[p][1]))),
+    shared.1 <- mixcolor(0.2, sRGB(t(col2rgb(group1.color[p][1]))), 
                          sRGB(t(col2rgb(group2.color[p][1]))))
-    
-    shared.2 <- mixcolor(.5,
-                         sRGB(t(col2rgb(group1.color[p][1]))),
+    shared.2 <- mixcolor(0.5, sRGB(t(col2rgb(group1.color[p][1]))), 
                          sRGB(t(col2rgb(group2.color[p][1]))))
-    
-    
     shared.1.col[i] <- rgb(shared.1@coords, maxColorValue = 255)
     shared.2.col[i] <- rgb(shared.2@coords, maxColorValue = 255)
-    
-    #colnames(res.i) <- paste(   new.colnames, var.multicomp.groups[i])
-    colnames(  res.all[[i]]) <- new.colnames
-    
-    barplot(res.all[[i]], 
-            ylim = c(0, ncol(res.all[[i]]) * (n + 1)),
-            xlim = c(0, here),
-            cex.axis = 0.5, 
-            cex.names = 0.5, 
-            xaxt = "n", 
-            horiz = T, 
-            main = "",
-            xlab = "median population size (log 10)", 
-            las = 1,
-            add = add[i],
-            space = c(n - i, rep(n, ncol(  res.all[[i]]))[-1]), 
-            col = c(unique.1.col[i],    
-                    shared.1.col[i] ,     
-                    shared.2.col[i] , 
-                    unique.2.col[i] ))
+    colnames(res.all[[i]]) <- new.colnames
+    barplot(res.all[[i]], ylim = c(0, ncol(res.all[[i]]) * 
+                                     (n + 1)), xlim = c(0, here), cex.axis = 0.5, cex.names = 0.5, 
+            xaxt = "n", horiz = T, main = "", xlab = "median population size (log 10)", 
+            las = 1, add = add[i], space = c(n - i, rep(n, ncol(res.all[[i]]))[-1]), 
+            col = c(unique.1.col[i], shared.1.col[i], shared.2.col[i], 
+                    unique.2.col[i]))
   }
-
   if (log) {
     segments(x0 = here - log10(11), x1 = here, y0 = 14, y1 = 14, 
              lwd = 2)
@@ -548,36 +519,21 @@ tax.shared.multicomp <- function (otu,
              lwd = 2)
     text(here - 0.5, 11, "1000", cex = 0.5)
   }
-
-  leg <- aggregate( map$col.group, list(map$antibiotic.group), unique)
-  
-  text(here+.3, n.taxa * n / 2, srt = 0, "u1", pos = 4)
-  text(here+.6, n.taxa * n / 2, srt = 0, "s1", pos = 4)
-  text(here+.9, n.taxa * n / 2, srt = 0, "s2", pos = 4)
-  text(here+1.2, n.taxa * n / 2, srt = 0, "u2", pos = 4)
-  
-  legend(here+.3, n.taxa * n / 2,
-         fill =  unique.1.col, 
-         legend =  rep("", n), 
+  leg <- aggregate(map$col.group, list(map$antibiotic.group), 
+                   unique)
+  text(here + 0.3, n.taxa * n/2, srt = 0, "u1", pos = 4)
+  text(here + 0.6, n.taxa * n/2, srt = 0, "s1", pos = 4)
+  text(here + 0.9, n.taxa * n/2, srt = 0, "s2", pos = 4)
+  text(here + 1.2, n.taxa * n/2, srt = 0, "u2", pos = 4)
+  legend(here + 0.3, n.taxa * n/2, fill = unique.1.col, legend = rep("", 
+                                                                     n), cex = 1, bty = "n")
+  legend(here + 0.6, n.taxa * n/2, fill = shared.1.col, legend = rep("", 
+                                                                     n), cex = 1, bty = "n")
+  legend(here + 0.9, n.taxa * n/2, fill = shared.2.col, legend = rep("", 
+                                                                     n), cex = 1, bty = "n")
+  legend(here + 1.2, n.taxa * n/2, fill = unique.2.col, legend = var.multicomp.groups, 
          cex = 1, bty = "n")
-  
-  legend(here+.6, n.taxa * n / 2,
-         fill =  shared.1.col, 
-         legend =  rep("", n), 
-         cex = 1, bty = "n")
-  
-  legend(here+.9, n.taxa * n / 2,
-         fill =  shared.2.col, 
-         legend =  rep("", n), 
-         cex = 1, bty = "n")
-  
-  legend(here+1.2, n.taxa * n / 2,
-         fill =  unique.2.col, 
-         legend =  var.multicomp.groups, 
-         cex = 1,
-         bty = "n")
-  
-  dev.off() #turn off develop
+  dev.off()
 }
 
 remove_rare <- function( table , cutoff_pro ) {
