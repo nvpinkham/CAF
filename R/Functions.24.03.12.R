@@ -65,7 +65,8 @@ filter.outliers <- function(var, f = 1.5){
 #' @return t test results
 #' @export
 plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = map$col.group[p], 
-                       exclude.outliers = TRUE, p.adjust = T, symbols = T){
+                       exclude.outliers = T, p.adjust = T, symbols = T, ylim = c(0, 1)) 
+{
   if (missing(col)) {
     col <- color.groups(groups)
   }
@@ -85,14 +86,13 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
   groups1 <- groups[!is.na(groups) & !is.na(var)]
   var <- var1
   groups <- droplevels(groups1)
+
+  n <- table(groups)
+  n <- paste0(names(n), " (n=", n, ")")
   
-  boxplot(var ~ groups, 
-          col = col.agg$x,
-          xlab = "", 
-          las = 2,
-          ylab = var.name,
-          ylim = range(var, na.rm = T) * c(0.9, 
-                                           1.2))
+  boxplot(var ~ groups, col = col.agg$x, xlab = "", las = 2, 
+          ylab = var.name, ylim = ylim, names =  n)
+  
   outs <- aggregate(var, list(groups), filter.outliers)
   aa = 0
   groups.unique <- levels(groups)
@@ -122,45 +122,44 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
     }
   }
   
-  if(p.adjust){
+  if (p.adjust) {
     t.res.all$p.fdr <- p.adjust(t.res.all$p)
   }else{
-    t.res.all$p.fdr <- as.numeric(t.res.all$p)
+    t.res.all$p.fdr <- NA
   }
   
-  for(i in 1 : nrow(t.res.all)){
-    if ( t.res.all$p.fdr[i]  < 0.05) {
-     
+  
+  t.res.all$symbol <- NA
+  t.res.all$symbol[  t.res.all$p.fdr < 0.05] <- "*"
+  t.res.all$symbol[  t.res.all$p.fdr < 0.01] <- "**"
+  t.res.all$symbol[  t.res.all$p.fdr < 0.001] <- "***"
+  
+  for (i in 1:nrow(t.res.all)) {
+    if (t.res.all$p.fdr[i] < 0.05) {
       g1 <- which(groups.unique == t.res.all$group1[i])
       g2 <- which(groups.unique == t.res.all$group2[i])
-      h <- max(var) + i * diff(range(var, na.rm = T)) / 50
-      
-      segments(x0 = g1,
-               y0 = h, 
-               x1 = g2, 
-               y1 = h)
-      
-      if(symbols){
-        text(x = mean(c(g1, g2)), 
-             y = h, "*", pos = 2)
-      }else{
-        text(x = mean(c(g1, g2)), 
-             y = h,
+      h <- max(var) + i * diff(range(var, na.rm = T))/50
+      segments(x0 = g1, y0 = h, x1 = g2, y1 = h)
+      if (symbols) {
+        
+        text(x = mean(c(g1, g2)), y = h, t.res.all$symbol[i])
+  
+      }
+      else {
+        text(x = mean(c(g1, g2)),
+             y = h, 
              paste("p = ", 
-                   round(t.res.all$p.fdr[i], 
-                         5), "\n"), 
+                   round(t.res.all$p.fdr[i], 5), "\n"),
              col = 1, 
              cex = 0.5)
       }
     }
   }
-  
-  if(!p.adjust){
+  if (!p.adjust) {
     t.res.all$p.fdr <- NULL
   }
   return(t.res.all)
 }
-
 #' Plots NMDS from OTU table
 #'
 #'
