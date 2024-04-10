@@ -70,6 +70,9 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
   if (missing(col)) {
     col <- color.groups(groups)
   }
+  if (missing(ylim)) {
+    ylim <- range(ylim, na.rm = T)
+  }
   var.name <- deparse(substitute(var))
   groups.name <- deparse(substitute(groups))
   if (typeof(groups) == "character") {
