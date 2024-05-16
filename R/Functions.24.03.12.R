@@ -6,37 +6,56 @@
 #' @return hit table
 #' @examples
 #' @export
-blast.FUNction <- function(query.fasta = "WADDL_DiagnosticPCR_Primers_dummy.fas",
-                           genome.fasta = "test_temp.fasta",
-                           word_size = 11, max_tar = 1){
-
-  makedb <- paste("makeblastdb", "-dbtype nucl", "-in", genome.fasta)
-  system(makedb)
-
-  blast <- paste("blastn", "-query", query.fasta,
-                 "-db", genome.fasta,
-                 "-out", "temp.txt",
-                 "-outfmt 6",
+blast.FUNction <- function(query.fasta = "",
+                           subject.fasta = "Spore_Proteins_AA_pick.fasta",
+                           dbtype = "nucl",
+                           word_size = 7,
+                           outfmt = 6, 
+                           max_tar = 5, 
+                           algorithm = "blastx", 
+                           out = "temp.txt",
+                           num_threads = 12){
+  
+  if(!file.exists(paste0(subject.fasta, ".ntf"))){
+    
+    print(paste("making blast database for", subject.fasta))
+    
+    makedb <- paste("makeblastdb", "-dbtype", dbtype, "-in", subject.fasta)
+    system(makedb)
+    
+  }
+  
+  blast <- paste(algorithm, 
+                 "-query", query.fasta,
+                 "-db", subject.fasta,
+                 "-out", out,
+                 "-outfmt", outfmt, 
                  "-subject_besthit",
                  "-max_target_seqs", max_tar,
                  "-evalue 1000",
-                 "-word_size", word_size)
+                 "-word_size", word_size, 
+                 "-num_threads", num_threads)
   system(blast)
-
-  blast.res <- read.table("temp.txt")
-  colnames(blast.res) <- c("qseqid",
-                           "sseqid",
-                           "pident",
-                           "length",
-                           "mismatch",
-                           "gapopen",
-                           "qstart",
-                           "qend",
-                           "sstart",
-                           "send",
-                           "evalue",
-                           "bitscore")
-  return(blast.res)
+  
+  if(outfmt == 6){
+    blast.res <- read.csv(out, sep = "\t", header = F)
+    
+    colnames(blast.res) <- c("qseqid",
+                             "sseqid",
+                             "pident",
+                             "length",
+                             "mismatch",
+                             "gapopen",
+                             "qstart",
+                             "qend",
+                             "sstart",
+                             "send",
+                             "evalue",
+                             "bitscore")
+    return(blast.res)
+  }else{
+    return(readLines("temp.txt"))
+  }
 }
 
 #' Remove outliers
