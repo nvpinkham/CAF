@@ -24,7 +24,8 @@ blast.FUNction <- function(query.fasta = "",
     system(makedb)
     
   }
-  
+
+
   blast <- paste(algorithm, 
                  "-query", query.fasta,
                  "-db", subject.fasta,
@@ -75,7 +76,6 @@ filter.outliers <- function(var, f = 1.5){
 
   return(var > low & var < up)
 }
-
 #' Plots 1 numeric vector against 1 categorical vector
 #' now does fdr
 #'
