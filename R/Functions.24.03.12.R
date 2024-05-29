@@ -182,6 +182,10 @@ plot.1var <- function (var = Invsimp, groups = map$antibiotic.group[p], col = ma
   }
   return(t.res.all)
 }
+
+
+
+
 #' Plots NMDS from OTU table
 #'
 #'
