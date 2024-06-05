@@ -779,5 +779,6 @@ taxplot <- function (otu = otu.nasal,
   
   legend("right", bty = "n", fill = rev(col.key[, 2]), legend = rev(col.key[, 
                                                                             1]))
+  return(col.key)
 }
 
