@@ -321,7 +321,7 @@ group.t <- function(response = map$invsimp,
 #' @return
 #' @export
 tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family, 
-                              PresAbs = F, log = T, taxa2include) {
+                              PresAbs = F, log = T, taxa2include, round.to = 3) {
   if (PresAbs & log) {
     warning("Log transformation not informative when using PresAbs")
   }
@@ -366,8 +366,8 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
   }
   ps.unique <- p.adjust(ps.unique, method = "fdr")
   ps.shared <- p.adjust(ps.shared, method = "fdr")
-  ps.unique <- round(ps.unique, 5)
-  ps.shared <- round(ps.shared, 5)
+  ps.unique <- round(ps.unique, round.to)
+  ps.shared <- round(ps.shared, round.to)
   jj <- which(ps.unique > 0.05 | is.na(ps.unique))
   ps.unique[jj] <- " "
   ps.unique[-jj] <- paste0("(unique p=", ps.unique[-jj], ")")
