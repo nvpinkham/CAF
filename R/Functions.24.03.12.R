@@ -320,19 +320,20 @@ group.t <- function(response = map$invsimp,
 #' @param map environmental data corresponding to each site in the site abundance table
 #' @return
 #' @export
-tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family, 
-                              PresAbs = F, log = T, taxa2include, round.to = 3) {
+tax.shared.table <- function (otu.table, var, group1, group2, tax.level = tax$family, PresAbs = F, 
+          log = T, taxa2include){
   if (PresAbs & log) {
     warning("Log transformation not informative when using PresAbs")
   }
   var <- as.factor(var)
-  group1.otus <- otu[var == group1, ]
-  group2.otus <- otu[var == group2, ]
+  group1.otus <- otu.table[var == group1, ]
+  group2.otus <- otu.table[var == group2, ]
   if (PresAbs) {
     gg <- "number of discrete OTUs"
     group1.otus[group1.otus > 0] <- 1
     group2.otus[group2.otus > 0] <- 1
-  }else{
+  }
+  else {
     gg <- "mean population size"
   }
   group1.otus.shared <- group1.otus.unique <- group1.otus
@@ -341,12 +342,14 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
   group1.otus.shared[, colSums(group1.otus.unique) > 0] <- 0
   group2.otus.unique[, colSums(group1.otus) > 0] <- 0
   group2.otus.shared[, colSums(group2.otus.unique) > 0] <- 0
-  
-  group1.fam.unique <- aggregate(t(group1.otus.unique), list(tax.level),  sum)
-  group1.fam.shared <- aggregate(t(group1.otus.shared), list(tax.level),  sum)
-  group2.fam.unique <- aggregate(t(group2.otus.unique), list(tax.level), sum)
-  group2.fam.shared <- aggregate(t(group2.otus.shared), list(tax.level), sum)
-  
+  group1.fam.unique <- aggregate(t(group1.otus.unique), list(tax.level), 
+                                 sum)
+  group1.fam.shared <- aggregate(t(group1.otus.shared), list(tax.level), 
+                                 sum)
+  group2.fam.unique <- aggregate(t(group2.otus.unique), list(tax.level), 
+                                 sum)
+  group2.fam.shared <- aggregate(t(group2.otus.shared), list(tax.level), 
+                                 sum)
   g1.u <- rowMeans(group1.fam.unique[, -1])
   names(g1.u) <- group1.fam.unique$Group.1
   g1.s <- rowMeans(group1.fam.shared[, -1])
@@ -355,9 +358,7 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
   names(g2.u) <- group2.fam.unique$Group.1
   g2.s <- rowMeans(group2.fam.shared[, -1])
   names(g2.s) <- group2.fam.shared$Group.1
-  
   ps.unique <- ps.shared <- NULL
-  
   for (i in 1:nrow(group1.fam.unique)) {
     ps.unique[i] <- wilcox.test(t(group1.fam.unique[i, -1]), 
                                 t(group2.fam.unique[i, -1]), exact = F)$p.value
@@ -366,8 +367,8 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
   }
   ps.unique <- p.adjust(ps.unique, method = "fdr")
   ps.shared <- p.adjust(ps.shared, method = "fdr")
-  ps.unique <- round(ps.unique, round.to)
-  ps.shared <- round(ps.shared, round.to)
+  ps.unique <- round(ps.unique, 5)
+  ps.shared <- round(ps.shared, 5)
   jj <- which(ps.unique > 0.05 | is.na(ps.unique))
   ps.unique[jj] <- " "
   ps.unique[-jj] <- paste0("(unique p=", ps.unique[-jj], ")")
@@ -381,14 +382,10 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
                                                            gg, "in", group1), paste("shared - ", gg, "in", group2), 
                          paste("unique to ", group2))
   tax.res <- tax.res[, colSums(tax.res) != 0]
-
-  
   if (log) {
     tax.res <- log10(as.matrix(tax.res) + 1)
   }
-  
   tax.res <- tax.res[, order(colSums(tax.res), decreasing = F)]
-
   if (!missing(taxa2include)) {
     print(taxa2include)
     tax.res2 <- as.data.frame(matrix(nrow = 4, ncol = length(taxa2include)))
@@ -406,7 +403,6 @@ tax.shared.table <- function (otu, var, group1, group2, tax.level = tax$family,
     }
     tax.res <- as.matrix(tax.res2)
   }
- 
   return(tax.res)
 }
 
@@ -459,31 +455,45 @@ tax.shared <- function(otu, var, group1, group2, tax.level = tax$family,
   return(tax.res)
 }
 
-tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var.multicomp.groups = unique(map$antibiotic.group), 
-          var = map$day2anti, group1 = 0, group2 = 10, group1.color = "grey", 
-          group2.color = map$col.group, tax.level = tax$family, PresAbs = F, 
-          log = T, tiff = T, export_path="TaxShared_",  taxa2include = fam$Group.1){
+tax.shared.multicomp <- function (otu.table = otu[p,], 
+                                  var = map$group[p], 
+                                  var2 = map$participant[p], 
+                                  var2.groups = unique(map$participant[p]), 
+                                  group1 = "donor",
+                                  group2 = "recipiant", 
+                                  group1.color = "grey", 
+                                  group2.color = "blue", 
+                                  tax.level = tax$family, 
+                                  PresAbs = F, 
+                                  log = T,
+                                  tiff = T,
+                                  export_path="TaxShared_",  
+                                  taxa2include = fam$Group.1){
   
   group1.name <- deparse(substitute(group1))
-  var.multicomp.groups <- rev(var.multicomp.groups)
+  var2.groups <- rev(var2.groups)
   if (length(group1.color) == 1) {
-    group1.color <- rep(group1.color, nrow(otu))
+    group1.color <- rep(group1.color, nrow(otu.table))
   }
   if (length(group2.color) == 1) {
-    group2.color <- rep(group2.color, nrow(otu))
+    group2.color <- rep(group2.color, nrow(otu.table))
   }
-  n <- length(var.multicomp.groups)
+  
+  n <- length(var2.groups)
   n.taxa <- length(taxa2include)
   add <- vector(length = n)
   add[-1] <- T
   res.all <- list()
   for (i in 1:n) {
-    p <- var.multicomp == var.multicomp.groups[i]
-    res.i <- tax.shared.table(otu[p, ], var[p], group1, group2, 
+    p <- var2 == var2.groups[i]
+    res.i <- tax.shared.table(otu.table = otu[p,],
+                              var = var[p], 
+                              group1 = group1,
+                              group2 =  group2, 
                               tax.level, PresAbs, log, taxa2include)
     res.all[[i]] <- res.i
   }
-  names(res.all) <- var.multicomp.groups
+  names(res.all) <- var2.groups
   here = max(sapply(res.all, function(x) colSums(x)))
   unique.1.col <- NULL
   shared.1.col <- NULL
@@ -492,20 +502,25 @@ tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var
   
   if(tiff){
     
-    tiff(paste0(export_path, Sys.Date(), ".tiff"), units = "in", 
-         width = 12, height = n * n.taxa/10, res = 300)
+    tiff(paste0(export_path, Sys.Date(), ".tiff"),
+         units = "in", 
+         width = 12, 
+         height = max(c(n * n.taxa/10, 10)), 
+         res = 600)
     
   }else{
     
     setEPS()
-    postscript(paste0(export_path, Sys.Date(),".eps"), width=12,  height = n * n.taxa/10)
+    postscript(paste0(export_path, Sys.Date(),".eps"),
+               width=12, 
+               max(c(n * n.taxa/10, 10)))
     
   }
   
   par(mar = c(3, 20, 4, 20))
   par(xpd = TRUE)
   for (i in 1:n) {
-    p <- var.multicomp == var.multicomp.groups[i]
+    p <- var2 == var2.groups[i]
     unique.1.col[i] <- group1.color[p][1]
     unique.2.col[i] <- group2.color[p][1]
     if (i != 1) {
@@ -516,10 +531,10 @@ tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var
     else {
       new.colnames <- colnames(res.all[[i]])
     }
-    shared.1 <- mixcolor(0.2, sRGB(t(col2rgb(group1.color[p][1]))), 
-                         sRGB(t(col2rgb(group2.color[p][1]))))
-    shared.2 <- mixcolor(0.5, sRGB(t(col2rgb(group1.color[p][1]))), 
-                         sRGB(t(col2rgb(group2.color[p][1]))))
+    shared.1 <- colorspace::mixcolor(0.2, colorspace::sRGB(t(col2rgb(group1.color[p][1]))), 
+                                     colorspace::sRGB(t(col2rgb(group2.color[p][1]))))
+    shared.2 <- colorspace::mixcolor(0.5, colorspace::sRGB(t(col2rgb(group1.color[p][1]))), 
+                                     colorspace::sRGB(t(col2rgb(group2.color[p][1]))))
     shared.1.col[i] <- rgb(shared.1@coords, maxColorValue = 255)
     shared.2.col[i] <- rgb(shared.2@coords, maxColorValue = 255)
     colnames(res.all[[i]]) <- new.colnames
@@ -544,8 +559,7 @@ tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var
              lwd = 2)
     text(here - 0.5, 11, "1000", cex = 0.5)
   }
-  leg <- aggregate(map$col.group, list(map$antibiotic.group), 
-                   unique)
+
   text(here + 0.3, n.taxa * n/2, srt = 0, "u1", pos = 4)
   text(here + 0.6, n.taxa * n/2, srt = 0, "s1", pos = 4)
   text(here + 0.9, n.taxa * n/2, srt = 0, "s2", pos = 4)
@@ -556,11 +570,10 @@ tax.shared.multicomp <- function (otu, var.multicomp = map$antibiotic.group, var
                                                                      n), cex = 1, bty = "n")
   legend(here + 0.9, n.taxa * n/2, fill = shared.2.col, legend = rep("", 
                                                                      n), cex = 1, bty = "n")
-  legend(here + 1.2, n.taxa * n/2, fill = unique.2.col, legend = var.multicomp.groups, 
+  legend(here + 1.2, n.taxa * n/2, fill = unique.2.col, legend = var2.groups, 
          cex = 1, bty = "n")
   dev.off()
 }
-
 remove_rare <- function( table , cutoff_pro ) {
 
   table <- t(table)# transpose to keep "tidy" ; easier that rewriting function...
