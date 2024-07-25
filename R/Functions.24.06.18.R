@@ -702,9 +702,9 @@ color.groups <- function(vec, cols = c("darkorange", #(Red)
 read.mothur.taxonomy <- function(cons.taxonomy){
   
   tax <- read.table(cons.taxonomy, 
-                    header = T, row.names = 1)
+                    header = F, row.names = 1)
   
-  tax.list <- strsplit(tax$Taxonomy, ";|[(]|[)]")
+  tax.list <- strsplit(tax$V2, ";|[(]|[)]")
   
   tax.df <- matrix(nrow = nrow(tax), ncol = 18)
   
