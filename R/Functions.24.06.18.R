@@ -902,4 +902,20 @@ taxplot <- function (otu = otu.nasal,
   return(t.res.all)
 }
 
+medain4agg <- function(x){
+  if(class(x) == "numeric" | class(x) == "integer"){
+    return(median(x))
+  }else{
+    return(unique(x))
+  }
+}
+
+mean4agg <- function(x){
+  if(class(x) == "numeric" | class(x) == "integer"){
+    return(mean(x))
+  }else{
+    return(unique(x))
+  }
+}
+
 
