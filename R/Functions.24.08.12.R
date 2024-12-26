@@ -2027,6 +2027,54 @@ read.mothur.taxonomy <- function(cons.taxonomy){
                           "fam.conf", "genus", "gen.conf")
     return(tax.df)
   }
+
+
+#' Extract an Element from a Delimited String
+#'
+#' This function extracts a specific element from a delimited string. It supports extracting 
+#' elements from the start or the end of the string.
+#'
+#' @param string A character vector of strings to process.
+#' @param sep A character string used as the delimiter for splitting the string. Defaults to `" "`.
+#' @param n An integer specifying which element to extract (starting from 1). Defaults to `1`.
+#' @param from.end A logical value indicating whether to extract the element counting from the end 
+#' of the string. Defaults to `FALSE`.
+#'
+#' @return A character vector containing the extracted elements. If the specified element does not 
+#' exist for a string, `NA` is returned for that entry.
+#'
+#' @details 
+#' The function splits each string in `string` using the specified delimiter `sep`, then extracts 
+#' the `n`th element. If `from.end` is `TRUE`, the function reverses the split components and extracts 
+#' the `n`th element from the reversed order.
+#'
+#' @examples
+#' # Extract the first word from a string
+#' get.element(c("apple pie", "banana split"), sep = " ", n = 1)
+#' 
+#' # Extract the second word from a string
+#' get.element(c("apple pie", "banana split"), sep = " ", n = 2)
+#' 
+#' # Extract the last word from a string
+#' get.element(c("apple pie", "banana split"), sep = " ", n = 1, from.end = TRUE)
+#'
+#' @export
+get.element <- function(string, sep = " ", n = 1, from.end = F) {
+  split <- strsplit(string, sep)
+  
+  if(from.end) {
+    split <- lapply(split, rev)
+  }
+  
+  p <- lengths(split) >= n
+  
+  res <- rep(NA, length(split))
+  res[p] <- sapply(split[p], `[[`, n)
+  
+  return(res)
+}
                     
 
+
+                    
 
